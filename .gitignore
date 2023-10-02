@@ -17,3 +17,5 @@ tests/original_falcon_40b.py
 cache
 prod_env
 lib
+*.jsonl
+*.json
