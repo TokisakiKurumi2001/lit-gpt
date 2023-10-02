@@ -1,0 +1,29 @@
+{
+  "seed": 42,
+  "embed_model_name": "sentence-transformers/all-mpnet-base-v2",
+  "min_community_size": 10,
+  "threshold": 0.75,
+  "num_sample": 20000,
+  "verbose": true,
+  "cluster_path": "cnn_cluster.json",
+  "sample_question_path": "cnn_question.jsonl",
+  "is_exist_cluster": false,
+  "domain_data_paths": [
+    [
+      "cnn_dailymail",
+      "article",
+      "highlights",
+      [
+        "3.0.0"
+      ],
+      {
+        "split": "train"
+      }
+    ]
+  ],
+  "cache_dir": "cache/cnn",
+  "force_rebuild": {
+    "corpus_embeddings": false,
+    "cluster": false
+  }
+}
