@@ -1,0 +1,19 @@
+__pycache__
+.idea
+.DS_Store
+*.egg-info
+build
+.venv
+.vscode
+
+# data
+data
+checkpoints
+out
+wandb
+benchmark_output
+
+tests/original_falcon_40b.py
+cache
+prod_env
+lib
