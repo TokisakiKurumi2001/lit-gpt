@@ -61,20 +61,16 @@ class Parser:
         for metric in self.mappings['mmlu']:
             mmlu_data[metric] = []
 
-        ptr_maps = {'mmlu': mmlu_data}
-        keyword_split = {'mmlu': 'subject'}
-
         for el in self.raw_data:
             spec = el.path.split('/')[-1]
             task_name, conf = spec.split(':')
-            if task_name in keyword_split.keys():
-                ptr = ptr_maps[task_name]
+            if task_name == 'mmlu':
                 # extract subject
                 subject = conf.split(',')[0]
                 subject_name = subject.split('=')[1]
-                ptr[keyword_split[task_name]].append(subject_name)
+                mmlu_data['subject'].append(subject_name)
                 for metric_name, metric_value in zip(self.mappings[task_name], el.stats):
-                    ptr[metric_name].append(round(metric_value, 2))
+                    mmlu_data[metric_name].append(round(metric_value, 2))
             else:
                 json_template = {'name': "", "report": {}}
                 json_template['name'] = task_name
@@ -82,13 +78,12 @@ class Parser:
                     json_template['report'][metric_name] = round(metric_value, 2)
                 self.data.append(json_template)
         
-        # For MMLU, Bigbench
-        for task_name, data in ptr_maps.items():
-            data['name'] = task_name
-            data['report'] = {}
-            for metric_name in self.mappings[task_name]:
-                data['report'][metric_name] = round(avg(data[metric_name]), 2)
-            self.data.append(data)
+        # For MMLU
+        mmlu_data['name'] = 'mmlu'
+        mmlu_data['report'] = {}
+        for metric_name in self.mappings['mmlu']:
+            mmlu_data['report'][metric_name] = round(avg(mmlu_data[metric_name]), 2)
+        self.data.append(mmlu_data)
 
     def name2info(self, path: str):
         task_name = path.split(":")[0]

@@ -1,13 +1,12 @@
-from typing import Optional, Tuple, List
+from typing import List, Optional, Tuple
 
 import torch
 
-@torch.inference_mode()
+@torch.no_grad()
 def generate(
     model: torch.nn.Module,
     idx: torch.Tensor,
     max_returned_tokens: int,
-    max_seq_length: int,
     *,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
@@ -24,6 +23,10 @@ def generate(
         temperature: Scales the predicted logits by 1 / temperature.
         top_k: If specified, only sample among the tokens with the k highest probabilities.
         eos_id: If specified, stop generating any more token once the <eos> token is triggered.
+
+    Returns:
+        Tuple containing a list of token indexes, id of the top log probability, and the actual log probability of the
+        selected token.
     """
     T = idx.size(0)
     assert max_returned_tokens > T

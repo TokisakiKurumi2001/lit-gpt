@@ -6,10 +6,10 @@ import time
 import warnings
 from pathlib import Path
 from typing import Dict, List, Literal, Optional
-import uvicorn
 
 import lightning as L
 import torch
+import uvicorn
 from fastapi import FastAPI
 from lightning.fabric.strategies import FSDPStrategy
 from pydantic import BaseModel
@@ -18,16 +18,12 @@ from pydantic import BaseModel
 wd = Path(__file__).parent.parent.resolve()
 sys.path.append(str(wd))
 
+from lit_gpt import GPT, Config, Tokenizer
 from lit_gpt.model import Block
+from lit_gpt.lora import merge_lora_weights
+from lit_gpt.utils import check_valid_checkpoint_dir, lazy_load, quantization
 
 from generate import generate
-
-torch.set_float32_matmul_precision("high")
-
-
-from lit_gpt import GPT, Config, Tokenizer
-from lit_gpt.lora import GPT, Block, Config, merge_lora_weights
-from lit_gpt.utils import check_valid_checkpoint_dir, lazy_load, quantization
 
 lora_r = 8
 lora_alpha = 16
@@ -52,7 +48,7 @@ class ProcessRequest(BaseModel):
     top_k: int = 200
     temperature: float = 0.8
     seed: Optional[int] = None
-    echo_prompt: Optional[bool] = False
+    echo_prompt: Optional[bool]
 
 
 class Token(BaseModel):
@@ -91,7 +87,7 @@ def main(
             "bnb.nf4", "bnb.nf4-dq", "bnb.fp4", "bnb.fp4-dq", "bnb.int8", "gptq.int4"
         ]
     ] = None,
-    port=8080
+    port=8080,
 ):
     if strategy == "fsdp":
         strategy = FSDPStrategy(auto_wrap_policy={Block}, cpu_offload=False)
@@ -140,28 +136,29 @@ def main(
             L.seed_everything(input_data.seed)
         logger.info("Using device: {}".format(fabric.device))
         encoded = tokenizer.encode(
-            input_data.prompt, bos=True, eos=False, device=fabric.device
+            input_data.prompt, device=fabric.device
         )
         prompt_length = encoded.size(0)
         max_returned_tokens = prompt_length + input_data.max_new_tokens
-        assert max_returned_tokens <= model.config.block_size, (
-            max_returned_tokens,
-            model.config.block_size,
-        )  # maximum rope cache length
 
         t0 = time.perf_counter()
+        with fabric.init_tensor():
+            # set the max_seq_length to limit the memory usage to what we need
+            model.max_seq_length = max_returned_tokens
+
+        with fabric.init_tensor():
+            # enable the kv cache
+            model.set_kv_cache(batch_size=1)
         tokens, logprobs, top_logprobs = generate(
             model,
             encoded,
             max_returned_tokens,
-            max_seq_length=max_returned_tokens,
             temperature=input_data.temperature,
             top_k=input_data.top_k,
         )
 
         t = time.perf_counter() - t0
 
-        model.reset_cache()
         if input_data.echo_prompt is False:
             output = tokenizer.decode(tokens[prompt_length:])
         else:
@@ -190,13 +187,11 @@ def main(
     async def tokenize(input_data: TokenizeRequest) -> TokenizeResponse:
         logger.info("Using device: {}".format(fabric.device))
         t0 = time.perf_counter()
-        encoded = tokenizer.encode(
-            input_data.text, bos=True, eos=False, device=fabric.device
-        )
+        encoded = tokenizer.encode(input_data.text, device=fabric.device)
         t = time.perf_counter() - t0
         tokens = encoded.tolist()
         return TokenizeResponse(tokens=tokens, request_time=t)
-    
+
     uvicorn.run(app, port=port)
 
 
@@ -204,9 +199,4 @@ if __name__ == "__main__":
     from jsonargparse import CLI
 
     torch.set_float32_matmul_precision("high")
-    warnings.filterwarnings(
-        # Triggered internally at ../aten/src/ATen/EmptyTensor.cpp:31
-        "ignore",
-        message="ComplexHalf support is experimental and many operators don't support it yet",
-    )
-    CLI(main)
+    CLI(main, as_positional=False)

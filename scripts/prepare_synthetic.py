@@ -15,9 +15,9 @@ sys.path.append(str(wd))
 
 from lit_gpt.tokenizer import Tokenizer
 
-DESTINATION_PATH = Path("data/synthetic/v2/tokenized/7B")
+DESTINATION_PATH = Path("data/synthetic/v2/tokenized/Mistral")
 INPUT_DATA_PATH = Path("data/synthetic/v2/raw_data")
-CHECKPOINT_DIR = Path("checkpoints/meta-llama/Llama-2-7b-hf")
+CHECKPOINT_DIR = Path("checkpoints/mistralai/Mistral-7B-v0.1")
 IGNORE_INDEX = -1
 MASK_INPUTS = False
 SEED = 42
@@ -48,7 +48,13 @@ def prepare(
     print("Loading data file...")
 
     data_train = []
-    domains = ['chat', 'cnn', 'math', 'science']
+    model = 'mistral' # llama2, mistral
+
+    if model == 'mistral':
+        domains = ['mistral_chat', 'cnn', 'math', 'science']
+    else:
+        domains = ['chat', 'cnn', 'math', 'science']
+
     for domain in domains:
         print(f"Loading {domain} domain ...")
         with open(input_data_path / f'{domain}_prompt_data.jsonl', "r", encoding="utf-8") as fin:

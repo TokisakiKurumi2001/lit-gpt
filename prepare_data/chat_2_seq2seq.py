@@ -1013,8 +1013,8 @@ register_conv_template(
     )
 )
 
-def build_seq2seq(data: List[str], chat_data: List[Dict[str,str]]):
-    conv = get_conv_template('llama-2')
+def build_seq2seq(data: List[str], chat_data: List[Dict[str,str]], model_name: str):
+    conv = get_conv_template(model_name)
     conv.set_system_message("You are a helpful, respectful and honest assistant.")
     # some data - conversational chat ends with the question of the prompter but no response of assistant
     # remove the last prompt
@@ -1023,10 +1023,11 @@ def build_seq2seq(data: List[str], chat_data: List[Dict[str,str]]):
     for i, prompt in enumerate(data[0:-1]):
         conv.append_message(conv.roles[i % 2], prompt)
     conv.append_message(conv.roles[1], None)
-    chat_data.append({'input': conv.get_prompt(), 'output': data[-1] + " </s><s>"})
+    chat_data.append({'input': conv.get_prompt(), 'output': data[-1] + conv.sep2})
 
 if __name__ == "__main__":
     # num_samples = 30000 # 10K
+    model_name = 'mistral' # llama-2, mistral
     chat_data = [] # [{'input': '', 'output': ''} ...]
 
     with open('chat_data.jsonl') as fin:
@@ -1035,33 +1036,11 @@ if __name__ == "__main__":
             data = data['chat']
             if len(data) < 4:
                 continue
-            build_seq2seq(data, chat_data)
+            build_seq2seq(data, chat_data, model_name)
 
     print(f'Accumulate {len(chat_data)} conversation.')
 
-    with open('chat_sample.jsonl', 'w') as fout:
+    with open(f'{model_name}_chat_sample.jsonl', 'w') as fout:
         for _data in chat_data:
             # fout.write(json.dumps(_data, indent=2, default=str)+'\n')
             fout.write(json.dumps(_data)+'\n')
-
-# if __name__ == "__main__":
-#     print("Vicuna template:")
-#     conv = get_conv_template("vicuna_v1.1")
-#     conv.append_message(conv.roles[0], "Hello!")
-#     conv.append_message(conv.roles[1], "Hi!")
-#     conv.append_message(conv.roles[0], "How are you?")
-#     conv.append_message(conv.roles[1], None)
-#     print(conv.get_prompt())
-
-#     print("\n")
-
-#     print("Llama-2 template:")
-#     conv = get_conv_template("llama-2")
-#     conv.set_system_message("You are a helpful, respectful and honest assistant.")
-#     conv.append_message(conv.roles[0], "Hello!")
-#     conv.append_message(conv.roles[1], "Hi!")
-#     conv.append_message(conv.roles[0], "How are you?")
-#     conv.append_message(conv.roles[1], None)
-#     print(conv.get_prompt())            
-
-            

@@ -13,11 +13,15 @@ def check_valid(tokenizer, input_seq: str) -> bool:
 
 if __name__ == "__main__":
     print("Loading tokenizer")
-    ckpt = Path("/khoilm1/lit-gpt/checkpoints/meta-llama/Llama-2-7b-hf")
+    model = 'mistral' # llama2, mistral
+    if model == 'llama2':
+        ckpt = Path("/khoilm1/lit-gpt/checkpoints/meta-llama/Llama-2-7b-hf")
+    else:
+        ckpt = Path("/khoilm1/lit-gpt/checkpoints/mistralai/Mistral-7B-v0.1")
     tokenizer = Tokenizer(ckpt)
 
     res = []
-    with open('chat_sample.jsonl') as fin:
+    with open(f'{model}_chat_sample.jsonl') as fin:
         for line in tqdm(fin):
             data = json.loads(line)
             # data['instruction'] = 'The following are conversational chats with the user. Be a helpful assistant and response.'
@@ -28,12 +32,12 @@ if __name__ == "__main__":
 
     print(f"Accumulate {len(res)} samples.")
 
-    if not os.path.exists('cache/chat/'):
-        os.makedirs('cache/chat/')
+    if not os.path.exists(f'cache/chat/{model}'):
+        os.makedirs(f'cache/chat/{model}')
 
-    with open(f'cache/chat/result_data.pkl', 'wb') as fout:
+    with open(f'cache/chat/{model}/result_data.pkl', 'wb') as fout:
         pickle.dump(res, fout)
 
-    with open('chat_prompt_data.jsonl', 'w') as fout:
+    with open(f'{model}_chat_prompt_data.jsonl', 'w') as fout:
         for data in res:
             fout.write(json.dumps(data)+'\n')
