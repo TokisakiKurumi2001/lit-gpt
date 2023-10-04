@@ -24,7 +24,7 @@ def export_data(data_path, *args, **kwargs):
 def save_few_shot_data(res, path):
     with open(path, 'w') as fout:
         for ques in res:
-            fout.write(json.dumps(ques)+'\n')
+            fout.write(json.dumps(ques, indent=2, default=str)+'\n')
 
 def create_few_shot(model, domain_data_paths, query_id, result_path, cache_dir: str="", verbose=True):
     #create corpus
@@ -76,28 +76,33 @@ if __name__ == "__main__":
     ckpt = 'sentence-transformers/all-mpnet-base-v2'
     model = SentenceTransformer(ckpt)
 
-    # domain_data_paths = [
-    #     ['gsm8k','question', 'answer', ["main"], {"split":"train"}], 
-    #     ['math_qa','Problem', 'correct',[], {"split":"train"}], 
-    #     ['math-eval/TAL-SCQ5K','problem', 'answer_value', [], {'data_dir':"TAL-SCQ5K-EN","split":"train"}],
-    #     ['meta-math/MetaMathQA', 'query', 'response', [], {}]
-    # ]
+    domain = 'science' # math, science, cnn
 
-    domain_data_paths = [
-        ['cnn_dailymail', 'article', 'highlights', ['3.0.0'], {"split": 'train'}]
-    ]
+    multi_domain_data_paths = {
+        "math": [
+            ['gsm8k','question', 'answer', ["main"], {"split":"train"}], 
+            ['math_qa','Problem', 'correct',[], {"split":"train"}], 
+            ['math-eval/TAL-SCQ5K','problem', 'answer_value', [], {'data_dir':"TAL-SCQ5K-EN","split":"train"}],
+            ['meta-math/MetaMathQA', 'query', 'response', [], {}]
+        ],
 
-    # domain_data_paths = [
-    #     ['lighteval/mmlu', 'question', 'answer', ['all'], {"split": 'auxiliary_train'}],
-    #     ['lighteval/bbq_helm', 'question', 'references', ['all'], {"split": 'train'}],
-    #     ['openbookqa', 'question_stem', 'answerKey', ['main'], {'split': 'train'}],
-    # ]
+        "cnn": [
+            ['cnn_dailymail', 'article', 'highlights', ['3.0.0'], {"split": 'train'}]
+        ],
 
-    print('Loading sample id')
-    cache_dir = 'cache/cnn'
+        "science": [
+            ['lighteval/mmlu', 'question', 'answer', ['all'], {"split": 'auxiliary_train'}],
+            ['lighteval/bbq_helm', 'question', 'references', ['all'], {"split": 'train'}],
+            ['openbookqa', 'question_stem', 'answerKey', ['main'], {'split': 'train'}],
+        ],
+    }
+
+    print(f'Loading {domain} sample id')
+    cache_dir = f'cache/{domain}'
     with open(f'{cache_dir}/sample_id.pkl', 'rb') as fin:
         sample_id = pickle.load(fin)
 
     print('Creating data')
-    create_few_shot(model, domain_data_paths, sample_id, 'cnn_fewshot.jsonl', cache_dir=cache_dir)
+    domain_data_paths = multi_domain_data_paths[domain]
+    create_few_shot(model, domain_data_paths, sample_id, f'data/few-shot/{domain}_fewshot.jsonl', cache_dir=cache_dir)
 

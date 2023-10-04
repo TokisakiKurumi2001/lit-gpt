@@ -40,10 +40,10 @@ override_max_seq_length = None
 # Hyperparameters
 learning_rate = 3e-4
 batch_size = 128
-micro_batch_size = 1
+micro_batch_size = 2
 gradient_accumulation_iters = batch_size // micro_batch_size
 assert gradient_accumulation_iters > 0
-MAX_ITERS = 150000  # train dataset size
+MAX_ITERS = 225000  # train dataset size
 weight_decay = 0.01
 lora_r = 8
 lora_alpha = 16
@@ -166,7 +166,6 @@ def train(
     max_seq_length, longest_seq_length, longest_seq_ix = get_max_seq_length(train_data)
     model.max_seq_length = max_seq_length
 
-    # validate(fabric, model, val_data, tokenizer, longest_seq_length)  # sanity check
     train_t0 = time.perf_counter()
     with torch.device("meta"):
         meta_model = GPT(model.config)

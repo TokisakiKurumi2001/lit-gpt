@@ -15,8 +15,8 @@ sys.path.append(str(wd))
 
 from lit_gpt.tokenizer import Tokenizer
 
-DESTINATION_PATH = Path("data/synthetic/v1/tokenized/7B")
-INPUT_DATA_PATH = Path("data/synthetic/v1/raw_data")
+DESTINATION_PATH = Path("data/synthetic/v2/tokenized/7B")
+INPUT_DATA_PATH = Path("data/synthetic/v2/raw_data")
 CHECKPOINT_DIR = Path("checkpoints/meta-llama/Llama-2-7b-hf")
 IGNORE_INDEX = -1
 MASK_INPUTS = False

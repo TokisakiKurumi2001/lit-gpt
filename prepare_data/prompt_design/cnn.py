@@ -3,6 +3,9 @@ from typing import Optional
 from pathlib import Path
 from tqdm import tqdm
 from lit_gpt.tokenizer import Tokenizer
+import re
+import os
+import pickle
 
 MAX_SEQ_LEN = 2048
 
@@ -26,35 +29,43 @@ if __name__ == "__main__":
     tokenizer = Tokenizer(ckpt)
 
     res = []
+    print("Loading data ...")
     with open('cnn_fewshot.jsonl') as fin:
-        for line in tqdm(fin):
-            data = json.loads(line)
-            
-            main_sample = data['origin']
-            main_input_seq = input_template(main_sample['question'])
-            main_output_seq = output_template(main_sample['answer'])
-            shot_input_seq = []
-            shot_output_seq = []
-            for shot in data['shot']:
-                shot_input_seq.append(input_template(shot['question']))
-                shot_output_seq.append(output_template(shot['answer']))
+        json_data = re.sub(r"}\s*{", "},{", fin.read())
+        sample_list = json.loads("["+json_data+"]")
+    
+    for data in tqdm(sample_list):
+        main_sample = data['origin']
+        main_input_seq = input_template(main_sample['question'])
+        main_output_seq = output_template(main_sample['answer'])
+        shot_input_seq = []
+        shot_output_seq = []
+        for shot in data['shot']:
+            shot_input_seq.append(input_template(shot['question']))
+            shot_output_seq.append(output_template(shot['answer']))
 
-            num_shot = 5
+        num_shot = 5
+        prompt = aggregate_prompt(main_input_seq, shot_input_seq[0:num_shot], shot_output_seq[0:num_shot])
+        valid = check_valid(tokenizer, prompt + main_output_seq)
+        while not valid:
+            num_shot -= 1
+            if num_shot == 0:
+                valid = False
+                break
             prompt = aggregate_prompt(main_input_seq, shot_input_seq[0:num_shot], shot_output_seq[0:num_shot])
             valid = check_valid(tokenizer, prompt + main_output_seq)
-            while not valid:
-                num_shot -= 1
-                if num_shot == 0:
-                    valid = False
-                    break
-                prompt = aggregate_prompt(main_input_seq, shot_input_seq[0:num_shot], shot_output_seq[0:num_shot])
-                valid = check_valid(tokenizer, prompt + main_output_seq)
-            
-            if valid:
-                res.append({'input': prompt, 'output': main_output_seq, 'instruction': ''})
+        
+        if valid:
+            res.append({'input': prompt, 'output': main_output_seq, 'instruction': ''})
 
     print(f"Accumulate {len(res)} samples.")
 
-    with open('cnn_data.jsonl', 'w') as fout:
-        for data in res[:5000]:
+    if not os.path.exists('cache/cnn/'):
+        os.makedirs('cache/cnn/')
+
+    with open(f'cache/cnn/result_data.pkl', 'wb') as fout:
+        pickle.dump(res, fout)
+
+    with open('cnn_prompt_data.jsonl', 'w') as fout:
+        for data in res:
             fout.write(json.dumps(data)+'\n')

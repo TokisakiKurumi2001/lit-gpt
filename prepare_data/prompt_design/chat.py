@@ -17,10 +17,11 @@ if __name__ == "__main__":
     tokenizer = Tokenizer(ckpt)
 
     res = []
-    with open('chat_sample_30K.jsonl') as fin:
+    with open('chat_sample.jsonl') as fin:
         for line in tqdm(fin):
             data = json.loads(line)
-            data['instruction'] = 'The following are conversational chats with the user. Be a helpful assistant and reponse.'
+            # data['instruction'] = 'The following are conversational chats with the user. Be a helpful assistant and response.'
+            data['instruction'] = ''
             valid = check_valid(tokenizer, data['instruction'] + data['input'] + data['output'])
             if valid:
                 res.append(data)
@@ -34,5 +35,5 @@ if __name__ == "__main__":
         pickle.dump(res, fout)
 
     with open('chat_prompt_data.jsonl', 'w') as fout:
-        for data in res[:5000]:
+        for data in res:
             fout.write(json.dumps(data)+'\n')

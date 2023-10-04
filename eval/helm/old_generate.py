@@ -1,8 +1,9 @@
-from typing import Optional, Tuple, List
+from typing import List, Optional, Tuple
 
 import torch
 
-@torch.inference_mode()
+
+@torch.no_grad()
 def generate(
     model: torch.nn.Module,
     idx: torch.Tensor,
@@ -21,9 +22,14 @@ def generate(
         model: The model to use.
         idx: Tensor of shape (T) with indices of the prompt sequence.
         max_returned_tokens: The maximum number of tokens to return (given plus generated).
+        max_seq_length: The maximum sequence length allowed. Should be less or equal than the block size.
         temperature: Scales the predicted logits by 1 / temperature.
         top_k: If specified, only sample among the tokens with the k highest probabilities.
         eos_id: If specified, stop generating any more token once the <eos> token is triggered.
+
+    Returns:
+        Tuple containing a list of token indexes, id of the top log probability, and the actual log probability of the
+        selected token.
     """
     T = idx.size(0)
     assert max_returned_tokens > T
@@ -42,7 +48,7 @@ def generate(
         x = idx.index_select(0, input_pos).view(1, -1)
 
         # forward
-        logits = model(x, input_pos)
+        logits = model(x, max_seq_length, input_pos)
         logits = logits[0, -1] / temperature
 
         # optionally crop the logits to only the top k options
@@ -51,6 +57,7 @@ def generate(
             logits = torch.where(logits < v[[-1]], -float("Inf"), logits)
 
         probs = torch.nn.functional.softmax(logits, dim=-1)
+
         idx_next = torch.multinomial(probs, num_samples=1).to(dtype=dtype)
 
         # append the logprob of selected token

@@ -122,6 +122,10 @@ def main(
             model.config.block_size,
         )  # maximum rope cache length
 
+        with fabric.init_tensor():
+            # enable the kv cache
+            model.set_kv_cache(batch_size=1)
+
         t0 = time.perf_counter()
         tokens, logprobs, top_logprobs = generate(
             model,
@@ -134,7 +138,7 @@ def main(
 
         t = time.perf_counter() - t0
 
-        model.reset_cache()
+        model.clear_kv_cache()
         if input_data.echo_prompt is False:
             output = tokenizer.decode(tokens[prompt_length:])
         else:

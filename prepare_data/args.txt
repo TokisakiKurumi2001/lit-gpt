@@ -1,29 +1,51 @@
 {
   "seed": 42,
   "embed_model_name": "sentence-transformers/all-mpnet-base-v2",
-  "min_community_size": 10,
+  "min_community_size": 5,
   "threshold": 0.75,
-  "num_sample": 20000,
+  "num_sample": 50000,
   "verbose": true,
-  "cluster_path": "cnn_cluster.json",
-  "sample_question_path": "cnn_question.jsonl",
+  "cluster_path": "data/science_cluster.json",
+  "sample_question_path": "data/science_question.jsonl",
   "is_exist_cluster": false,
   "domain_data_paths": [
     [
-      "cnn_dailymail",
-      "article",
-      "highlights",
+      "lighteval/mmlu",
+      "question",
+      "answer",
       [
-        "3.0.0"
+        "all"
+      ],
+      {
+        "split": "auxiliary_train"
+      }
+    ],
+    [
+      "lighteval/bbq_helm",
+      "question",
+      "references",
+      [
+        "all"
+      ],
+      {
+        "split": "train"
+      }
+    ],
+    [
+      "openbookqa",
+      "question_stem",
+      "answerKey",
+      [
+        "main"
       ],
       {
         "split": "train"
       }
     ]
   ],
-  "cache_dir": "cache/cnn",
+  "cache_dir": "cache/science",
   "force_rebuild": {
     "corpus_embeddings": false,
-    "cluster": false
+    "cluster": true
   }
 }

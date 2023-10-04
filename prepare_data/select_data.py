@@ -78,6 +78,12 @@ def create_clusters(PRETRAINED_EMBED_MODEL, domain_data_paths, min_community_siz
         )
         with open(f'{cache_dir}/cluster.pkl', 'wb') as file:
             pickle.dump(clusters, file)
+
+    # calculate sum of number of element in each cluster
+    total_num = 0
+    for cluster in clusters:
+        total_num += len(cluster)
+    print(f'There are in total {total_num} elements in cluster')
     
     cluster_dic = {}
     for i, cluster in enumerate(clusters):
@@ -126,7 +132,7 @@ def select_samples(num_samples, clusters_dictionary, cache_dir):
     for i, cluster in enumerate(clusters):
         examples = clusters_dict[i]
 
-        sample_index = random.sample(list(range(len(cluster))), cluster_num_sample[i])
+        sample_index = random.sample(list(range(len(cluster))), min(cluster_num_sample[i], len(cluster)))
         
         ids.append([cluster[i] for i in sample_index])
         res.append([examples[i] for i in sample_index])
@@ -151,6 +157,7 @@ def select_examples_from_question(question, num_examples, clusters_dict):
 
 def main(args):
     if args.is_exist_cluster:
+        print("Loading clustering dictionary file ...")
         cluster_dic = load_clusters(args.cluster_path)
     else:
         cluster_dic = create_clusters(args.embed_model_name, args.domain_data_paths, args.min_community_size, args.threshold, args.cluster_path, args.cache_dir, args.force_rebuild, verbose=True)
@@ -178,8 +185,8 @@ if __name__ == '__main__':
     # Example: you have a list of name path dataset which each element includes <local_path,name_of_question_column, name_of_answer_column, args, kwargs>
 
     # MATH set, num_sample=15K
-    # python select_data.py -n 15000 --cluster_path math_cluster.json --sample_question_path math_question.jsonl
-    # Result: Sample 14409 documents.
+    # python select_data.py -n 30000 --cluster_path data/math_cluster.json --sample_question_path data/math_question.jsonl
+    # Result: Sample 22725 documents.
     # setattr(args, 'domain_data_paths',[
     #     ['gsm8k','question', 'answer', ["main"], {"split":"train"}], 
     #     ['math_qa','Problem', 'correct',[], {"split":"train"}], 
@@ -190,29 +197,23 @@ if __name__ == '__main__':
     # setattr(args, 'force_rebuild', {"corpus_embeddings": False, "cluster": False})
 
     # CNN set, num_sample=5K
-    # python select_data.py -n 10000 --cluster_path cnn_cluster.json --sample_question_path cnn_question.jsonl
-    # Since the competition limit the number of tokens to 2048, we will remove sample later on.
-    setattr(args, 'domain_data_paths',[
-        ['cnn_dailymail', 'article', 'highlights', ['3.0.0'], {"split": 'train'}]
-    ])
-    setattr(args, 'cache_dir', 'cache/cnn')
-    setattr(args, 'force_rebuild', {"corpus_embeddings": False, "cluster": False})
-
-    # Chat, num_sample=10K
+    # python select_data.py -n 30000 --cluster_path data/cnn_cluster.json --sample_question_path data/cnn_question.jsonl
     # setattr(args, 'domain_data_paths',[
-    #     ['OpenAssistant/oasst1', 'text', 'role', [], {"split": 'train'}]
+    #     ['cnn_dailymail', 'article', 'highlights', ['3.0.0'], {"split": 'train'}]
     # ])
+    # setattr(args, 'cache_dir', 'cache/cnn')
+    # setattr(args, 'force_rebuild', {"corpus_embeddings": False, "cluster": False})
 
     # Science, num_sample=20K
-    # `python select_data.py -n 20000 --cluster_path science.json --sample_question_path science_question.jsonl`
-    # Result: 19275
+    # python select_data.py -n 50000 --cluster_path data/science_cluster.json --sample_question_path data/science_question.jsonl --min_community_size 5
+    # Result: 44996
     # setattr(args, 'domain_data_paths',[
     #     ['lighteval/mmlu', 'question', 'answer', ['all'], {"split": 'auxiliary_train'}],
     #     ['lighteval/bbq_helm', 'question', 'references', ['all'], {"split": 'train'}],
     #     ['openbookqa', 'question_stem', 'answerKey', ['main'], {'split': 'train'}],
     # ])
     # setattr(args, 'cache_dir', 'cache/science')
-    # setattr(args, 'force_rebuild', {"corpus_embeddings": True, "cluster": True})
+    # setattr(args, 'force_rebuild', {"corpus_embeddings": False, "cluster": True})
     
     print(args)
     # Save args file
