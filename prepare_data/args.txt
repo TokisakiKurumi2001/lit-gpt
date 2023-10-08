@@ -2,48 +2,26 @@
   "seed": 42,
   "embed_model_name": "sentence-transformers/all-mpnet-base-v2",
   "min_community_size": 5,
-  "threshold": 0.75,
-  "num_sample": 50000,
+  "threshold": 0.5,
+  "num_sample": 5000,
   "verbose": true,
-  "cluster_path": "data/science_cluster.json",
-  "sample_question_path": "data/science_question.jsonl",
+  "cluster_path": "dolly_cluster.json",
+  "sample_question_path": "dolly_question.jsonl",
   "is_exist_cluster": false,
   "domain_data_paths": [
     [
-      "lighteval/mmlu",
-      "question",
-      "answer",
+      "databricks/databricks-dolly-15k",
+      "instruction",
+      "response",
       [
-        "all"
-      ],
-      {
-        "split": "auxiliary_train"
-      }
-    ],
-    [
-      "lighteval/bbq_helm",
-      "question",
-      "references",
-      [
-        "all"
-      ],
-      {
-        "split": "train"
-      }
-    ],
-    [
-      "openbookqa",
-      "question_stem",
-      "answerKey",
-      [
-        "main"
+        "information_extraction"
       ],
       {
         "split": "train"
       }
     ]
   ],
-  "cache_dir": "cache/science",
+  "cache_dir": "cache/dolly/information_extraction",
   "force_rebuild": {
     "corpus_embeddings": false,
     "cluster": true

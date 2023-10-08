@@ -147,7 +147,7 @@ def main(fabric: L.Fabric, data_dir: Path, max_iters: int, checkpoint_dir: Path,
 
     train_time = time.perf_counter()
     train(fabric, model, optimizer, train_data, max_iters, checkpoint_dir, out_dir, speed_monitor)
-    fabric.print(f"Training time: {((time.perf_counter()-train_time)/3600):.2f}s")
+    fabric.print(f"Training time: {((time.perf_counter()-train_time)/3600):.2f}h")
     if fabric.device.type == "cuda":
         fabric.print(f"Memory used: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
@@ -245,7 +245,7 @@ def train(
         #     checkpoint_path = out_dir / f"iter-{iter_num:06d}-ckpt.pth"
         #     save_lora_checkpoint(fabric, model, checkpoint_path)
     train_t1 = time.perf_counter()
-    fabric.print(f"time : {(train_t1 - train_t0)/3600:.2f}h")
+    fabric.print(f"time : {(train_t1 - total_t0)/3600:.2f}h")
 
 
 @torch.inference_mode()

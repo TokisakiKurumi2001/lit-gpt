@@ -1,4 +1,4 @@
-export WORK_DIR=mistral
+export WORK_DIR=llama13-4epoch
 cd benchmark_output/runs/
 mkdir ${WORK_DIR}
 cp -rf baseline/eval_cache ${WORK_DIR}/

@@ -19,6 +19,10 @@ def export_data(data_path, *args, **kwargs):
         dataset = dataset['train'].train_test_split(test_size=0.25, seed=42)
 
         return dataset['train']
+    elif data_path == 'databricks/databricks-dolly-15k':
+        dataset = load_dataset(data_path, **kwargs)
+        dataset_filtered = dataset.filter(lambda example: example['category'] == args[0])
+        return dataset_filtered
     else:
         dataset = load_dataset(data_path, *args, **kwargs)
     
@@ -98,15 +102,6 @@ def create_clusters(PRETRAINED_EMBED_MODEL, domain_data_paths, min_community_siz
     if verbose:
         print('Saved New Clusters.')
 
-    # Check Cluster by Printing for all clusters the top 3 and bottom 3 elements
-    # if verbose:
-    #     for i, cluster in enumerate(clusters):
-    #         print("\nCluster {}, #{} Elements ".format(i+1, len(cluster)))
-    #         for sentence_id in cluster[0:3]:
-    #             print("\t", corpus_sentences[sentence_id])
-    #         print("\t", "...")
-    #         for sentence_id in cluster[-3:]:
-    #             print("\t", corpus_sentences[sentence_id])
     return {"sample_dict": cluster_dic, "id_dict": clusters}
 
 def load_clusters(path):
@@ -184,57 +179,23 @@ if __name__ == '__main__':
     # get questions from aggregate of domain data (MATH / SCIENCE / CONVERSATIONAL CHAT)
     # Example: you have a list of name path dataset which each element includes <local_path,name_of_question_column, name_of_answer_column, args, kwargs>
 
-    # MATH set, num_sample=15K
-    # python select_data.py -n 30000 --cluster_path data/math_cluster.json --sample_question_path data/math_question.jsonl
-    # Result: Sample 22725 documents.
-    # setattr(args, 'domain_data_paths',[
-    #     ['gsm8k','question', 'answer', ["main"], {"split":"train"}], 
-    #     ['math_qa','Problem', 'correct',[], {"split":"train"}], 
-    #     ['math-eval/TAL-SCQ5K','problem', 'answer_value', [], {'data_dir':"TAL-SCQ5K-EN","split":"train"}],
-    #     ['meta-math/MetaMathQA', 'query', 'response', [], {}]
-    # ])
-    # setattr(args, 'cache_dir', 'cache/math')
-    # setattr(args, 'force_rebuild', {"corpus_embeddings": False, "cluster": False})
-
-    # CNN set, num_sample=5K
-    # python select_data.py -n 30000 --cluster_path data/cnn_cluster.json --sample_question_path data/cnn_question.jsonl
-    # setattr(args, 'domain_data_paths',[
-    #     ['cnn_dailymail', 'article', 'highlights', ['3.0.0'], {"split": 'train'}]
-    # ])
-    # setattr(args, 'cache_dir', 'cache/cnn')
-    # setattr(args, 'force_rebuild', {"corpus_embeddings": False, "cluster": False})
-
-    # Science, num_sample=20K
-    # python select_data.py -n 50000 --cluster_path data/science_cluster.json --sample_question_path data/science_question.jsonl --min_community_size 5
-    # Result: 44996
-    # setattr(args, 'domain_data_paths',[
-    #     ['lighteval/mmlu', 'question', 'answer', ['all'], {"split": 'auxiliary_train'}],
-    #     ['lighteval/bbq_helm', 'question', 'references', ['all'], {"split": 'train'}],
-    #     ['openbookqa', 'question_stem', 'answerKey', ['main'], {'split': 'train'}],
-    # ])
-    # setattr(args, 'cache_dir', 'cache/science')
-    # setattr(args, 'force_rebuild', {"corpus_embeddings": False, "cluster": True})
-
-    # ComplexQA, num_sample=50K
-    # python select_data.py -n 50000 --cluster_path data/complexqa_cluster.json --sample_question_path data/complexqa_question.jsonl
+    # Dolly
+    # python dolly_select.py -n 5000 --cluster_path dolly_cluster.json --sample_question_path dolly_question.jsonl --min_community_size 5
     # Result: 2968
-    # setattr(args, 'domain_data_paths',[
-    #     ['ai2_arc', 'question', 'answerKey', ['ARC-Challenge'], {'split': 'train'}],
-    #     ['ai2_arc', 'question', 'answerKey', ['ARC-Easy'], {'split': 'train'}],
-    #     ['piqa', 'goal', 'label', [], {'split': 'train'}],
-    #     ['social_i_qa', 'question', 'label', [], {'split': 'train'}],
-    #     ['Muennighoff/babi', 'question', 'answer', [], {'split': 'train'}],
-    #     ['Rowan/hellaswag', 'ctx', 'label', [], {'split': 'train'}],
-    # ])
-    # setattr(args, 'cache_dir', 'cache/complexqa')
-    # setattr(args, 'force_rebuild', {"corpus_embeddings": False, "cluster": False})
-    
-    print(args)
-    # Save args file
-    with open(os.path.join('args.txt'), 'w') as f:
-        f.write(json.dumps(args.__dict__, indent=2))
+    # domains = ['open_qa', 'creative_writing', 'closed_qa', 'summarization', 'brainstorming', 'classification', 'general_qa', 'information_extraction']
+    # for domain in domains:
+    #     setattr(args, 'domain_data_paths',[
+    #         ['databricks/databricks-dolly-15k', 'instruction', 'response', [domain], {'split': 'train'}],
+    #     ])
+    #     setattr(args, 'cache_dir', f'cache/dolly/{domain}')
+    #     setattr(args, 'force_rebuild', {"corpus_embeddings": False, "cluster": True})
+        
+    #     print(args)
+    #     # Save args file
+    #     with open(os.path.join('args.txt'), 'w') as f:
+    #         f.write(json.dumps(args.__dict__, indent=2))
 
-    set_seed(args.seed)
+    #     set_seed(args.seed)
 
-    main(args)
+    #     main(args)
 

@@ -16,6 +16,10 @@ def export_data(data_path, *args, **kwargs):
         dataset = dataset['train'].train_test_split(test_size=0.25, seed=42)
 
         return dataset['train']
+    elif data_path == 'databricks/databricks-dolly-15k':
+        dataset = load_dataset(data_path, **kwargs)
+        dataset_filtered = dataset.filter(lambda example: example['category'] == args[0])
+        return dataset_filtered
     else:
         dataset = load_dataset(data_path, *args, **kwargs)
     
@@ -26,7 +30,7 @@ def save_few_shot_data(res, path):
         for ques in res:
             fout.write(json.dumps(ques, indent=2, default=str)+'\n')
 
-def create_few_shot(model, domain_data_paths, query_id, result_path, cache_dir: str="", verbose=True):
+def create_few_shot(model, domain_data_paths, query_id, cache_dir: str="", verbose=True):
     #create corpus
     corpus_sentences_dict = {}
     for local_path, ques_col_name, ans_col_name, args, kwargs in domain_data_paths:
@@ -68,7 +72,7 @@ def create_few_shot(model, domain_data_paths, query_id, result_path, cache_dir: 
             example['shot'] = [corpus_sentences_dict[corpus_sentences[hit['corpus_id']]] for hit in hits_query[1:]]
             res.append(example)
 
-    save_few_shot_data(res, result_path)
+    return res
 
 if __name__ == "__main__":
     # Load model
@@ -76,42 +80,20 @@ if __name__ == "__main__":
     ckpt = 'sentence-transformers/all-mpnet-base-v2'
     model = SentenceTransformer(ckpt)
 
-    domain = 'complexqa' # math, science, cnn, complexqa
-
-    multi_domain_data_paths = {
-        "math": [
-            ['gsm8k','question', 'answer', ["main"], {"split":"train"}], 
-            ['math_qa','Problem', 'correct',[], {"split":"train"}], 
-            ['math-eval/TAL-SCQ5K','problem', 'answer_value', [], {'data_dir':"TAL-SCQ5K-EN","split":"train"}],
-            ['meta-math/MetaMathQA', 'query', 'response', [], {}]
-        ],
-
-        "cnn": [
-            ['cnn_dailymail', 'article', 'highlights', ['3.0.0'], {"split": 'train'}]
-        ],
-
-        "science": [
-            ['lighteval/mmlu', 'question', 'answer', ['all'], {"split": 'auxiliary_train'}],
-            ['lighteval/bbq_helm', 'question', 'references', ['all'], {"split": 'train'}],
-            ['openbookqa', 'question_stem', 'answerKey', ['main'], {'split': 'train'}],
-        ],
-
-        "complexqa": [
-            ['ai2_arc', 'question', 'answerKey', ['ARC-Challenge'], {'split': 'train'}],
-            ['ai2_arc', 'question', 'answerKey', ['ARC-Easy'], {'split': 'train'}],
-            ['piqa', 'goal', 'label', [], {'split': 'train'}],
-            ['social_i_qa', 'question', 'label', [], {'split': 'train'}],
-            ['Muennighoff/babi', 'question', 'answer', [], {'split': 'train'}],
-            ['Rowan/hellaswag', 'ctx', 'label', [], {'split': 'train'}],
+    domains = ['open_qa', 'creative_writing', 'closed_qa', 'summarization', 'brainstorming', 'classification', 'general_qa', 'information_extraction']
+    result = []
+    for domain in domains:
+        domain_data_path = [
+            ['databricks/databricks-dolly-15k', 'instruction', 'response', [domain], {'split': 'train'}],
         ]
-    }
 
-    print(f'Loading {domain} sample id')
-    cache_dir = f'cache/{domain}'
-    with open(f'{cache_dir}/sample_id.pkl', 'rb') as fin:
-        sample_id = pickle.load(fin)
+        print(f'Loading {domain} sample id')
+        cache_dir = f'cache/dolly/{domain}'
+        with open(f'{cache_dir}/sample_id.pkl', 'rb') as fin:
+            sample_id = pickle.load(fin)
 
-    print('Creating data')
-    domain_data_paths = multi_domain_data_paths[domain]
-    create_few_shot(model, domain_data_paths, sample_id, f'data/few-shot/{domain}_fewshot.jsonl', cache_dir=cache_dir)
+        print('Creating data')
+        result.extend(create_few_shot(model, domain_data_path, sample_id, cache_dir=cache_dir))
+
+    save_few_shot_data(result, 'data/few-shot/dolly_fewshot.jsonl')
 
