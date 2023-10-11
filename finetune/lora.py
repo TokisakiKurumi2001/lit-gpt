@@ -36,7 +36,7 @@ log_interval = 1
 devices = 1
 
 # Hyperparameters
-learning_rate = 3e-4
+learning_rate = 5e-5
 batch_size = 128
 micro_batch_size = 2
 gradient_accumulation_iters = batch_size // micro_batch_size
@@ -52,7 +52,7 @@ lora_value = True
 lora_projection = False
 lora_mlp = False
 lora_head = False
-warmup_steps = 100
+WARMUP_RATIO = 0.1
 
 hparams = {k: v for k, v in locals().items() if isinstance(v, (int, float, str)) and not k.startswith("_")}
 
@@ -63,6 +63,7 @@ def setup(
     out_dir: Path = Path("out/lora/alpaca"),
     precision: Optional[str] = None,
     max_iters: int = MAX_ITERS,
+    warmup_ratio: float = WARMUP_RATIO,
     quantize: Optional[Literal["bnb.nf4", "bnb.nf4-dq", "bnb.fp4", "bnb.fp4-dq"]] = None,
 ):
     precision = precision or get_default_supported_precision(training=True)
@@ -86,10 +87,10 @@ def setup(
     logger = CSVLogger(out_dir.parent, out_dir.name, flush_logs_every_n_steps=log_interval)
     fabric = L.Fabric(devices=fabric_devices, strategy=strategy, precision=precision, loggers=logger)
     fabric.print(hparams)
-    fabric.launch(main, data_dir, max_iters, checkpoint_dir, out_dir, quantize)
+    fabric.launch(main, data_dir, max_iters, warmup_ratio, checkpoint_dir, out_dir, quantize)
 
 
-def main(fabric: L.Fabric, data_dir: Path, max_iters: int, checkpoint_dir: Path, out_dir: Path, quantize: Optional[str] = None):
+def main(fabric: L.Fabric, data_dir: Path, max_iters: int, warmup_ratio: float, checkpoint_dir: Path, out_dir: Path, quantize: Optional[str] = None):
     check_valid_checkpoint_dir(checkpoint_dir)
 
     speed_monitor = SpeedMonitor(fabric, window_size=50, time_unit="seconds")
@@ -146,7 +147,7 @@ def main(fabric: L.Fabric, data_dir: Path, max_iters: int, checkpoint_dir: Path,
     fabric.seed_everything(1337 + fabric.global_rank)
 
     train_time = time.perf_counter()
-    train(fabric, model, optimizer, train_data, max_iters, checkpoint_dir, out_dir, speed_monitor)
+    train(fabric, model, optimizer, train_data, max_iters, warmup_ratio, checkpoint_dir, out_dir, speed_monitor)
     fabric.print(f"Training time: {((time.perf_counter()-train_time)/3600):.2f}h")
     if fabric.device.type == "cuda":
         fabric.print(f"Memory used: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
@@ -162,6 +163,7 @@ def train(
     optimizer: torch.optim.Optimizer,
     train_data: List[Dict],
     max_iters: int,
+    warmup_ratio: float,
     checkpoint_dir: Path,
     out_dir: Path,
     speed_monitor: SpeedMonitor,
@@ -193,15 +195,20 @@ def train(
     total_lengths = 0
     total_t0 = time.perf_counter()
 
+    warmup_steps = int(warmup_ratio * max_iters)
+
     for iter_num in range(max_iters):
         iter_t0 = time.perf_counter()
+
         if step_count <= warmup_steps:
             # linear warmup
             lr = learning_rate * step_count / warmup_steps
-            for param_group in optimizer.param_groups:
-                param_group["lr"] = lr
+        else:
+            # linear decay
+            lr = learning_rate * (max_iters - step_count) / (max_iters - warmup_steps)
 
-        # iter_t0 = time.perf_counter()
+        for param_group in optimizer.param_groups:
+            param_group["lr"] = lr
 
         input_ids, targets = get_batch(fabric, train_data, longest_seq_ix if iter_num == 0 else None)
 
