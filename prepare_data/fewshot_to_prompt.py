@@ -132,12 +132,58 @@ def handle_each_complexqa1_format(dic):
         raise ValueError()
     return ques, ans
 
+
+# handle arc-c, piqa, siqa, babi, hallaswag
+"""
+arc-c: id & question & choices & answer
+piqa: question & sol1 & sol2 & answer
+siqa: context & question & answerA & answerB & answerC & answer
+babi: 
+hallaswag: 
+"""
+def handle_each_complexqa_format(dic):
+    if 'choices' in dic:
+        options = '\n\t'.join(
+            [f'{opt}. {ans}' for opt, ans in list(
+                zip(dic['choices']['label'],dic['choices']['text'])
+            )]
+        )
+        ques = '\n\t'.join([dic['question'],options])
+        ans = dic['answer']
+    elif 'sol1' in dic:
+        options = '\n\t'.join(
+            [f'{opt}. {ans}' for opt, ans in list(
+                zip(['A','B'],
+                    [dic['sol1'],dic['sol2']]
+            ))]
+        )
+        ques = '\n\t'.join([dic['question'],options])
+        map_numb_char = {0:'A', 1:'B'}
+        ans = map_numb_char[dic['answer']]
+    elif  'answerA' in dic:
+        options = '\n\t'.join(
+            [f'{opt}. {ans}' for opt, ans in list(
+                zip(['A','B','C'],
+                    (dic['answerA'], dic['answerB'], dic['answerC'])
+            ))]
+        )
+        ques = ' '.join([dic['context'],dic['question']])
+        ques = '\n\t'.join([ques,options])
+        map_numb_char = {0:'A', 1:'B', 2:'C'}
+        ans = map_numb_char[dic['answer']]
+    else:
+        print(dic)
+        raise ValueError()
+    return ques, ans
+
 def domain_func(domain, origin_shot_dic):
     len_threshold = 1500
     if domain == 'math':
         func = handle_each_math_format
     elif domain == 'science':
         func = handle_each_science_format
+    elif domain == 'complexqa':
+        func = handle_each_complexqa_format
     elif domain == 'complexqa1':
         func = handle_each_complexqa1_format
 
@@ -189,7 +235,7 @@ def main(domain_path, out_path, domain):
             
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--domain', type=str, help='domain for handling', choices=['chat','math','science','cnn', 'complexqa1'], default='math')
+    argparser.add_argument('--domain', type=str, help='domain for handling', choices=['chat','math','science','cnn', 'complexqa', 'complexqa1'], default='math')
     argparser.add_argument('--dir', type=str, help='directory containing <domain>_fewshot.jsonl', default='/vinai/khoilm1/vuongntm')
     argparser.add_argument('--out_path', type=str, help='path of output, the extension is json', default=None)
 
