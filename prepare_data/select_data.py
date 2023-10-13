@@ -12,6 +12,8 @@ import os
 import random
 import itertools
 import argparse
+import datasets
+datasets.builder.has_sufficient_disk_space = lambda needed_bytes, directory='.': True
 
 def export_data(data_path, *args, **kwargs):
     if data_path == 'meta-math/MetaMathQA':
@@ -83,7 +85,7 @@ def create_clusters(PRETRAINED_EMBED_MODEL, domain_data_paths, min_community_siz
     total_num = 0
     for cluster in clusters:
         total_num += len(cluster)
-    print(f'There are in total {total_num} elements in cluster')
+    print(f'There are in total {total_num} elements in {len(clusters)}clusters')
     
     cluster_dic = {}
     for i, cluster in enumerate(clusters):
@@ -123,9 +125,13 @@ def select_samples(num_samples, clusters_dictionary, cache_dir):
     clusters = clusters_dictionary["id_dict"]
     clusters_dict = clusters_dictionary["sample_dict"]
     
-    clusers_len = np.array([len(c) for c in clusters]) # array of length (= number of element) of each cluster
-    cluster_num_sample = clusers_len * num_samples / sum(clusers_len)
-    cluster_num_sample = np.where(cluster_num_sample<1,1,cluster_num_sample.astype(int)) # array stores number of element in each cluster should be sampled
+    if num_samples < len(clusters):
+        cluster_num_sample = [1]*len(clusters)
+        print('The number of clusters is greater than the number of samples. Get each cluster 1 sample!')
+    else:
+        clusers_len = np.array([len(c) for c in clusters]) # array of length (= number of element) of each cluster
+        cluster_num_sample = clusers_len * num_samples / sum(clusers_len)
+        cluster_num_sample = np.where(cluster_num_sample<1,1,cluster_num_sample.astype(int)) # array stores number of element in each cluster should be sampled
 
     res = []
     ids = []
@@ -184,14 +190,15 @@ if __name__ == '__main__':
     # get questions from aggregate of domain data (MATH / SCIENCE / CONVERSATIONAL CHAT)
     # Example: you have a list of name path dataset which each element includes <local_path,name_of_question_column, name_of_answer_column, args, kwargs>
 
-    # MATH set, num_sample=15K
-    # python select_data.py -n 30000 --cluster_path data/math_cluster.json --sample_question_path data/math_question.jsonl
-    # Result: Sample 22725 documents.
+    # MATH set, num_sample=10K
+    # python select_data.py -n 10000 --cluster_path data/math_cluster.json --sample_question_path data/math_question.jsonl
+    # Result: Sample 12733 documents.
     # setattr(args, 'domain_data_paths',[
     #     ['gsm8k','question', 'answer', ["main"], {"split":"train"}], 
     #     ['math_qa','Problem', 'correct',[], {"split":"train"}], 
     #     ['math-eval/TAL-SCQ5K','problem', 'answer_value', [], {'data_dir':"TAL-SCQ5K-EN","split":"train"}],
-    #     ['meta-math/MetaMathQA', 'query', 'response', [], {}]
+    #     ['meta-math/MetaMathQA', 'query', 'response', [], {}],
+    #     ['TIGER-Lab/MathInstruct', 'instruction', 'output', [], {"split":"train"}]
     # ])
     # setattr(args, 'cache_dir', 'cache/math')
     # setattr(args, 'force_rebuild', {"corpus_embeddings": False, "cluster": False})
@@ -202,6 +209,28 @@ if __name__ == '__main__':
     #     ['cnn_dailymail', 'article', 'highlights', ['3.0.0'], {"split": 'train'}]
     # ])
     # setattr(args, 'cache_dir', 'cache/cnn')
+    # setattr(args, 'force_rebuild', {"corpus_embeddings": False, "cluster": False})
+
+    # BigBench, num_sample=5k
+    # python select_data.py -n 5000 --cluster_path data/bigbench_cluster.json --sample_question_path data/bigbench_question.jsonl
+    # Result: 
+    subset = ['abstract_narrative_understanding', 'anachronisms', 'analogical_similarity', 'analytic_entailment', 'arithmetic', 'ascii_word_recognition', 'authorship_verification', 'auto_categorization', 'auto_debugging', 'bbq_lite_json', 'bridging_anaphora_resolution_barqa', 'causal_judgment', 'cause_and_effect', 'checkmate_in_one', 'chess_state_tracking', 'chinese_remainder_theorem', 'cifar10_classification', 'code_line_description', 'codenames', 'color', 'common_morpheme', 'conceptual_combinations', 'conlang_translation', 'contextual_parametric_knowledge_conflicts', 'crash_blossom', 'crass_ai', 'cryobiology_spanish', 'cryptonite', 'cs_algorithms', 'dark_humor_detection', 'date_understanding', 'disambiguation_qa', 'discourse_marker_prediction', 'disfl_qa', 'dyck_languages', 'elementary_math_qa', 'emoji_movie', 'emojis_emotion_prediction', 'empirical_judgments', 'english_proverbs', 'english_russian_proverbs', 'entailed_polarity', 'entailed_polarity_hindi', 'epistemic_reasoning', 'evaluating_information_essentiality', 'fact_checker', 'fantasy_reasoning', 'few_shot_nlg', 'figure_of_speech_detection', 'formal_fallacies_syllogisms_negation', 'gem', 'gender_inclusive_sentences_german', 'general_knowledge', 'geometric_shapes', 'goal_step_wikihow', 'gre_reading_comprehension', 'hhh_alignment', 'hindi_question_answering', 'hindu_knowledge', 'hinglish_toxicity', 'human_organs_senses', 'hyperbaton', 'identify_math_theorems', 'identify_odd_metaphor', 'implicatures', 'implicit_relations', 'indic_cause_and_effect', 'intent_recognition', 'international_phonetic_alphabet_nli', 'international_phonetic_alphabet_transliterate', 'intersect_geometry', 'irony_identification', 'kanji_ascii', 'kannada', 'key_value_maps', 'known_unknowns', 'language_games', 'language_identification', 'linguistic_mappings', 'linguistics_puzzles', 'list_functions', 'logic_grid_puzzle', 'logical_args', 'logical_deduction', 'logical_fallacy_detection', 'logical_sequence', 'mathematical_induction', 'matrixshapes', 'medical_questions_russian', 'metaphor_boolean', 'metaphor_understanding', 'minute_mysteries_qa', 'misconceptions', 'misconceptions_russian', 'mnist_ascii', 'modified_arithmetic', 'moral_permissibility', 'movie_dialog_same_or_different', 'movie_recommendation', 'mult_data_wrangling', 'navigate', 'nonsense_words_grammar', 'novel_concepts', 'object_counting', 'odd_one_out', 'operators', 'paragraph_segmentation', 'parsinlu_qa', 'parsinlu_reading_comprehension', 'penguins_in_a_table', 'periodic_elements', 'persian_idioms', 'phrase_relatedness', 'physical_intuition', 'physics', 'physics_questions', 'play_dialog_same_or_different', 'polish_sequence_labeling', 'presuppositions_as_nli', 'qa_wikidata', 'question_selection', 'real_or_fake_text', 'reasoning_about_colored_objects', 'repeat_copy_logic', 'rephrase', 'rhyming', 'riddle_sense', 'ruin_names', 'salient_translation_error_detection', 'scientific_press_release', 'semantic_parsing_in_context_sparc', 'semantic_parsing_spider', 'sentence_ambiguity', 'similarities_abstraction', 'simp_turing_concept', 'simple_arithmetic_json', 'simple_arithmetic_json_subtasks', 'simple_ethical_questions', 'simple_text_editing', 'snarks', 'social_iqa', 'social_support', 'sports_understanding', 'strange_stories', 'strategyqa', 'sufficient_information', 'suicide_risk', 'swahili_english_proverbs', 'swedish_to_german_proverbs', 'symbol_interpretation', 'tellmewhy', 'temporal_sequences', 'tense', 'timedial', 'topical_chat', 'tracking_shuffled_objects', 'understanding_fables', 'undo_permutation', 'unit_conversion', 'unit_interpretation', 'unnatural_in_context_learning', 'vitaminc_fact_verification', 'what_is_the_tao', 'which_wiki_edit', 'winowhy', 'word_sorting', 'word_unscrambling']
+    domain_data_paths = [['tasksource/bigbench','inputs', 'targets', [set], {"split":"train"}] for set in subset]
+    setattr(args, 'domain_data_paths', domain_data_paths)
+    setattr(args, 'cache_dir', 'cache/bigbench')
+    setattr(args, 'force_rebuild', {"corpus_embeddings": False, "cluster": False})
+
+    # ComplexQA1, num_sample=10K
+    # python select_data.py -n 10000 --cluster_path data/complexqa1_cluster.json --sample_question_path data/complexqa1_question.jsonl
+    # Result: 8097 samples
+    # setattr(args, 'domain_data_paths',[
+    #     ['medmcqa', 'question', 'cop', [], {"split": 'train'}],
+    #     ['winogrande', 'sentence', 'answer', ['winogrande_xl'], {"split": 'train'}],
+    #     ['winogrande', 'sentence', 'answer', ['winogrande_debiased'], {"split": 'train'}],
+    #     ['boolq', 'question', 'answer', [], {"split": 'train'}],
+    #     ['sciq', 'question', 'correct_answer', [], {"split": 'train'}]
+    # ])
+    # setattr(args, 'cache_dir', 'cache/complexqa1')
     # setattr(args, 'force_rebuild', {"corpus_embeddings": False, "cluster": False})
 
     # Science, num_sample=20K
