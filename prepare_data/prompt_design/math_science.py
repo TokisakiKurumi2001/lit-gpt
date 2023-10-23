@@ -14,29 +14,28 @@ def check_valid(tokenizer, input_seq: str) -> bool:
 
 if __name__ == "__main__":
     print("Loading tokenizer")
-    ckpt = Path("/khoilm1/lit-gpt/checkpoints/meta-llama/Llama-2-7b-hf")
+    ckpt = Path("/lustre/scratch/client/vinai/users/vuongntm/neurips_llm_challenge/lit-gpt/checkpoints/13B")
     tokenizer = Tokenizer(ckpt)
 
-    domain = 'science'
+    domain = 'complexqa1'# science, math, complexqa, complexqa1
     res = []
-    with open(f'{domain}_fintune.jsonl', 'r') as fin:
+    with open(f'data/finetune/{domain}_fintune.jsonl', 'r') as fin:
         json_data = re.sub(r"}\s*{", "},{", fin.read())
         sample_list = json.loads("["+json_data+"]")
         data_ls = sample_list[0]
 
     for data in tqdm(data_ls):
-        valid = check_valid(tokenizer, data['instruction'] + data['input'] + data['output'])
+        valid = check_valid(tokenizer, data['instruction'] + data['input'] + str(data['output']))
         if valid:
             res.append(data)
 
-    print(f"Accumulate {len(res)} samples.")
+    print(f"Accumulate {len(res)} samples for domain {domain}.")
 
     if not os.path.exists(f'cache/{domain}/'):
         os.makedirs(f'cache/{domain}/')
-
     with open(f'cache/{domain}/result_data.pkl', 'wb') as fout:
         pickle.dump(res, fout)
 
-    with open(f'{domain}_prompt_data.jsonl', 'w') as fout:
+    with open(f'data/finetune/{domain}_prompt_data.jsonl', 'w') as fout:
         for data in res:
             fout.write(json.dumps(data)+'\n')

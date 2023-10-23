@@ -38,7 +38,7 @@ devices = 1
 # Hyperparameters
 learning_rate = 5e-5
 batch_size = 128
-micro_batch_size = 2
+micro_batch_size = 1
 gradient_accumulation_iters = batch_size // micro_batch_size
 assert gradient_accumulation_iters > 0
 MAX_ITERS = 225000  # train dataset size
@@ -58,9 +58,9 @@ hparams = {k: v for k, v in locals().items() if isinstance(v, (int, float, str))
 
 
 def setup(
-    data_dir: Path = Path("data/alpaca"),
-    checkpoint_dir: Path = Path("checkpoints/stabilityai/stablelm-base-alpha-3b"),
-    out_dir: Path = Path("out/lora/alpaca"),
+    data_dir: Path = Path("data/v3/tokenized/Llama/"),
+    checkpoint_dir: Path = Path("/neurips_llm_challenge/huggingface/Llama-2-7b-hf"),
+    out_dir: Path = Path("checkpoints/lora/llama"),
     precision: Optional[str] = None,
     max_iters: int = MAX_ITERS,
     warmup_ratio: float = WARMUP_RATIO,

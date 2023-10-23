@@ -60,7 +60,7 @@ OpenboolQA: question & id & choices & labels & answer
 TruthQA: question & answer & type
 BBQ: question & context & answer & choices & gold_index
 """
-def handle_each_science_format(dic, is_example):
+def handle_each_science_format(dic):
     if 'subject' in dic and 'choices' in dic:
         options = '\n\t'.join([f'{opt}. {ans}' for opt, ans in list(zip(['A','B','C','D'],dic['choices']))])
         ques = '\n\t'.join([dic['question'], options])
@@ -169,8 +169,21 @@ def handle_each_complexqa_format(dic):
         )
         ques = ' '.join([dic['context'],dic['question']])
         ques = '\n\t'.join([ques,options])
-        map_numb_char = {0:'A', 1:'B', 2:'C'}
+        map_numb_char = {'1':'A', '2':'B', '3':'C'}
         ans = map_numb_char[dic['answer']]
+    elif 'ctx_a' in dic:
+        options = '\n\t'.join(
+                [f'{opt}. {ans}' for opt, ans in list(
+                    zip(['A','B','C', 'D'],
+                    dic['endings']
+                ))]
+        )
+        ques = '\n\t'.join([dic['question'], options])
+        map_numb_char = {'0':'A', '1':'B', '2':'C', '3':'D'}
+        ans = map_numb_char[dic['answer']]
+    elif 'task' in dic and 'passage' in dic:
+        ques = dic['passage'] + dic['question']
+        ans = dic['answer']
     else:
         print(dic)
         raise ValueError()
@@ -190,7 +203,7 @@ def domain_func(domain, origin_shot_dic):
     origin_ques, origin_ans = func(origin_shot_dic['origin'])
     origin_input = "Q: {}\nA:".format(origin_ques)
     if len(origin_input.split(' '))>len_threshold:
-        return None #remove this question
+        return None, None #remove this question
 
     prompt = ''
     num_over_len = 0
@@ -215,15 +228,20 @@ def domain_func(domain, origin_shot_dic):
     return res, num_over_len
 
 
-def main(domain_path, out_path, domain):
+def main(domain_path, out_path, domain, num_len):
     res = []
     with open(domain_path, 'r') as fin:
         json_data = re.sub(r"}\s*{", "},{", fin.read())
         sample_list = json.loads("["+json_data+"]")
         num_over_lens = 0
+        #num_len = 5000
+        import random
+        if num_len>0:
+            sample_list = random.choices(sample_list, k=num_len)
         for sample in sample_list:
+            # num_len -= 1
             inp, num_over_len = domain_func(domain, sample)
-            if inp:
+            if inp:# and num_len>0:
                 num_over_lens += num_over_len
                 res.append(inp)
     print('num_over_lens:',num_over_lens)
@@ -238,12 +256,15 @@ if __name__ == '__main__':
     argparser.add_argument('--domain', type=str, help='domain for handling', choices=['chat','math','science','cnn', 'complexqa', 'complexqa1'], default='math')
     argparser.add_argument('--dir', type=str, help='directory containing <domain>_fewshot.jsonl', default='/vinai/khoilm1/vuongntm')
     argparser.add_argument('--out_path', type=str, help='path of output, the extension is json', default=None)
+    argparser.add_argument('--num_len', type=int, help='sampling in data', default=0)
 
     args = argparser.parse_args()
 
     inp_path = os.path.join(args.dir, '{}_fewshot.jsonl'.format(args.domain))
     if not args.out_path:
         out_path = os.path.join(args.dir, '{}_fintune.jsonl'.format(args.domain))
+    else:
+        out_path = os.path.join(args.out_path, '{}_fintune.jsonl'.format(args.domain))
 
-    main(inp_path, out_path, args.domain)
+    main(inp_path, out_path, args.domain, args.num_len)
     

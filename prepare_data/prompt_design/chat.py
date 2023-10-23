@@ -13,15 +13,17 @@ def check_valid(tokenizer, input_seq: str) -> bool:
 
 if __name__ == "__main__":
     print("Loading tokenizer")
-    model = 'mistral' # llama2, mistral
+    model = '13B' # llama2, mistral
     if model == 'llama2':
         ckpt = Path("/khoilm1/lit-gpt/checkpoints/meta-llama/Llama-2-7b-hf")
+    elif model == '13B':
+        ckpt = Path('/lustre/scratch/client/vinai/users/vuongntm/neurips_llm_challenge/lit-gpt/checkpoints/13B')
     else:
         ckpt = Path("/khoilm1/lit-gpt/checkpoints/mistralai/Mistral-7B-v0.1")
     tokenizer = Tokenizer(ckpt)
 
     res = []
-    with open(f'{model}_chat_sample.jsonl') as fin:
+    with open(f'data/finetune/chat_prompt_data.jsonl') as fin:
         for line in tqdm(fin):
             data = json.loads(line)
             # data['instruction'] = 'The following are conversational chats with the user. Be a helpful assistant and response.'
@@ -38,6 +40,6 @@ if __name__ == "__main__":
     with open(f'cache/chat/{model}/result_data.pkl', 'wb') as fout:
         pickle.dump(res, fout)
 
-    with open(f'{model}_chat_prompt_data.jsonl', 'w') as fout:
+    with open(f'data/finetune/chat_prompt_data.jsonl', 'w') as fout:
         for data in res:
             fout.write(json.dumps(data)+'\n')

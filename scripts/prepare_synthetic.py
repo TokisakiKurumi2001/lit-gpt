@@ -15,9 +15,9 @@ sys.path.append(str(wd))
 
 from lit_gpt.tokenizer import Tokenizer
 
-DESTINATION_PATH = Path("data/synthetic/v2/tokenized/Mistral")
-INPUT_DATA_PATH = Path("data/synthetic/v2/raw_data")
-CHECKPOINT_DIR = Path("checkpoints/mistralai/Mistral-7B-v0.1")
+DESTINATION_PATH = Path("/vinai/khoilm1/vuongntm/v5/tokenized/13B")
+INPUT_DATA_PATH = Path("/vinai/khoilm1/vuongntm/v5/raw_data")
+CHECKPOINT_DIR = Path("/lustre/scratch/client/vinai/users/vuongntm/neurips_llm_challenge/lit-gpt/checkpoints/13B/")
 IGNORE_INDEX = -1
 MASK_INPUTS = False
 SEED = 42
@@ -48,12 +48,13 @@ def prepare(
     print("Loading data file...")
 
     data_train = []
-    model = 'mistral' # llama2, mistral
+    model = 'llama2' # llama2, mistral
 
+    domains = ['cnn', 'math', 'science', 'complexqa', 'complexqa1']
     if model == 'mistral':
-        domains = ['mistral_chat', 'cnn', 'math', 'science']
+        domains.append('mistral_chat')
     else:
-        domains = ['chat', 'cnn', 'math', 'science']
+        domains.append('chat')
 
     for domain in domains:
         print(f"Loading {domain} domain ...")
@@ -110,7 +111,7 @@ def prepare_sample(
     in the label that correspond to the original input prompt get masked out (default).
     """
     full_prompt = example['instruction'] + example['input']
-    full_prompt_and_response = full_prompt + example["output"]
+    full_prompt_and_response = full_prompt + str(example["output"])
     encoded_full_prompt = tokenizer.encode(full_prompt, max_length=max_length)
     encoded_full_prompt_and_response = tokenizer.encode(full_prompt_and_response, eos=True, max_length=max_length)
 
