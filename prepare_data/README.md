@@ -95,7 +95,7 @@ Convert the above conversation into seq2seq data using pre-defined template.
 {'Input': '<Role user><User command 1><Role bot><Bot response 1><Role user><User command 2><Role bot>', 'Output': '<Bot response 2>'}
 ```
 
-1. To prepare the data, first download `2023-04-12_oasst_ready.trees.jsonl` and put in the same directory of `prepare_chat.py`. Run `prepare_chat.py` to convert trees of conversation into list of conversation.
+1. To prepare the data, first download `2023-04-12_oasst_ready.trees.jsonl` from [huggingface](https://huggingface.co/datasets/OpenAssistant/oasst1/tree/main) and put in the same directory of `prepare_chat.py`. Run `prepare_chat.py` to convert trees of conversation into list of conversation.
 
 2. Run `chat_2_seq2seq.py` to convert list of conversation into Seq2Seq data (a.k.a. instruct dataset like other domains).
 
